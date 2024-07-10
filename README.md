@@ -35,3 +35,8 @@ To run the Bevy project, use the following command:
 ```bash
 cargo run
 ```
+To run the project as a WebAssembly application, use the following command:
+
+```bash
+cargo run --target wasm32-unknown-unknown
+```
