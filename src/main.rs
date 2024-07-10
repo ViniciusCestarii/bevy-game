@@ -303,7 +303,6 @@ fn rotate_to_player_system(
 }
 
 /// Detects collisions between enemies and the player, and reduces health.
-/// Detects collisions between enemies and the player, and reduces health.
 fn collision_system(
     mut player_query: Query<(&mut Health, &Transform), With<Player>>,
     enemy_query: Query<&Transform, With<Enemy>>,
@@ -321,12 +320,9 @@ fn collision_system(
             health.value -= 10;
             println!("Player health: {}", health.value);
 
-            // Ensure health doesn't drop below zero
             if health.value <= 0 {
                 println!("Player defeated!");
-                // Add logic to handle game over or exit gracefully
-                // For example, triggering game over or closing the application
-                std::process::exit(0); // Uncomment if you want to exit the application
+                std::process::exit(0);
             }
         }
     }
