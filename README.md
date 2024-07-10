@@ -1,4 +1,4 @@
-# Bevy Project
+# Bevy Game
 
 This is a Bevy project. Bevy is a refreshingly simple data-driven game engine built in Rust.
 
@@ -34,3 +34,4 @@ To run the Bevy project, use the following command:
 
 ```bash
 cargo run
+```
