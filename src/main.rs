@@ -16,6 +16,7 @@ fn main() {
                 enemy_movement_system,
                 snap_to_player_system,
                 rotate_to_player_system,
+                collision_system
             ),
         )
         .run();
@@ -30,7 +31,15 @@ struct Player {
     rotation_speed: f32,
 }
 
+/// health component
+#[derive(Component)]
+struct Health {
+    value: i32,
+}
+
 /// movement to enemy ship behavior
+#[derive(Component)]
+struct Enemy;
 #[derive(Component)]
 struct EnemyMove {
     movement_speed: f32,
@@ -77,6 +86,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             movement_speed: 500.0,                  // meters per second
             rotation_speed: f32::to_radians(360.0), // degrees per second
         },
+        Health { value: 100 },
     ));
 
     // enemy that snaps to face the player spawns on the bottom and left
@@ -90,6 +100,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         EnemyMove {
             movement_speed: 100.0,
         },
+        Enemy
     ));
     commands.spawn((
         SpriteBundle {
@@ -100,7 +111,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         SnapToPlayer,
         EnemyMove {
             movement_speed: 160.0,
-        }
+        },
+        Enemy
     ));
 
     // enemy that rotates to face the player enemy spawns on the top and right
@@ -115,7 +127,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         EnemyMove {
             movement_speed: 100.0,
-        }
+        },
+        Enemy
     ));
     commands.spawn((
         SpriteBundle {
@@ -128,7 +141,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         EnemyMove {
             movement_speed: 200.0,
-        }
+        },
+        Enemy
     ));
 }
 
@@ -174,10 +188,7 @@ fn player_movement_system(
     transform.translation = transform.translation.min(extents).max(-extents);
 }
 
-fn enemy_movement_system(
-    time: Res<Time>,
-    mut query: Query<(&EnemyMove, &mut Transform)>,
-) {
+fn enemy_movement_system(time: Res<Time>, mut query: Query<(&EnemyMove, &mut Transform)>) {
     for (enemy, mut transform) in &mut query {
         // get the ship's forward vector by applying the current rotation to the ship's initial facing vector
         let movement_direction = transform.rotation * Vec3::Y;
@@ -193,7 +204,6 @@ fn enemy_movement_system(
         transform.translation = transform.translation.min(extents).max(-extents);
     }
 }
-
 
 /// Demonstrates snapping the enemy ship to face the player ship immediately.
 fn snap_to_player_system(
@@ -289,5 +299,35 @@ fn rotate_to_player_system(
 
         // rotate the enemy to face the player
         enemy_transform.rotate_z(rotation_angle);
+    }
+}
+
+/// Detects collisions between enemies and the player, and reduces health.
+/// Detects collisions between enemies and the player, and reduces health.
+fn collision_system(
+    mut player_query: Query<(&mut Health, &Transform), With<Player>>,
+    enemy_query: Query<&Transform, With<Enemy>>,
+) {
+    let (mut health, player_transform) = player_query.single_mut();
+    let player_translation = player_transform.translation;
+
+    for enemy_transform in &enemy_query {
+        let enemy_translation = enemy_transform.translation;
+        let distance: f32 = player_translation.distance(enemy_translation);
+
+        let collision_distance = 30.0;
+
+        if distance < collision_distance {
+            health.value -= 10;
+            println!("Player health: {}", health.value);
+
+            // Ensure health doesn't drop below zero
+            if health.value <= 0 {
+                println!("Player defeated!");
+                // Add logic to handle game over or exit gracefully
+                // For example, triggering game over or closing the application
+                std::process::exit(0); // Uncomment if you want to exit the application
+            }
+        }
     }
 }
