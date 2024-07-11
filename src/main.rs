@@ -1,12 +1,58 @@
 //! Demonstrates rotating entities in 2D using quaternions.
 
 use bevy::prelude::*;
+use rand::prelude::*;
 
 const BOUNDS: Vec2 = Vec2::new(1200.0, 640.0);
 
+#[derive(Resource)]
+struct GreetTimer(Timer);
+
+fn spawn_enemy_system(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<GreetTimer>,
+    asset_server: Res<AssetServer>,
+) {
+    // update our timer with the time elapsed since the last update
+    // if that caused the timer to finish, we spawn a new enemy
+    if timer.0.tick(time.delta()).just_finished() {
+        let enemy_handle = asset_server.load("enemy_A.png");
+        let spawn_position = Vec3::new(
+            random::<f32>() * BOUNDS.x - BOUNDS.x / 2.,
+            random::<f32>() * BOUNDS.y - BOUNDS.y / 2.,
+            0.0,
+        );
+
+        commands.spawn((
+            SpriteBundle {
+                texture: enemy_handle,
+                transform: Transform::from_translation(spawn_position),
+                ..default()
+            },
+            Enemy,
+            EnemyMove {
+                movement_speed: random::<f32>() * 250. + 50.,
+            },
+            RotateToPlayer {
+                rotation_speed: f32::to_radians(random::<f32>() * 300. + 60.), // degrees per second
+            },
+        ));
+    }
+}
+
+pub struct GameEventPlugin;
+
+impl Plugin for GameEventPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
+            .add_systems(Update, spawn_enemy_system);
+    }
+}
+
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins((DefaultPlugins, GameEventPlugin))
         .insert_resource(Time::<Fixed>::from_hz(60.0))
         .add_systems(Startup, setup)
         .add_systems(
@@ -142,7 +188,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         EnemyMove {
             movement_speed: 200.0,
         },
-        Enemy
+        
     ));
 }
 
