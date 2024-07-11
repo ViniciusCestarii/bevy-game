@@ -1,3 +1,7 @@
+# Rust builds
 /target
-**/*.rs.bk
-/.vscode
+# Trunk builds
+/web/dist/
+
+# This file contains environment-specific configuration like linker settings
+.cargo/config.toml

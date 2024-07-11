@@ -1,3 +1,48 @@
+[package]
+name = "bevy_template"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0 OR CC0-1.0"
+
+[dependencies]
+bevy = "0.14"
+# Disable low-severity logs at compile time for performance.
+log = { version = "0.4", features = [
+    "max_level_debug",
+    "release_max_level_warn",
+] }
+rand = "0.8"
+
+[features]
+default = [
+    # Default to a native dev build.
+    "dev_native",
+]
+dev = [
+    # Improve compile times for dev builds by linking Bevy as a dynamic library.
+    "bevy/dynamic_linking",
+    "bevy/bevy_dev_tools",
+]
+dev_native = [
+    "dev",
+    # Enable asset hot reloading for native dev builds.
+    "bevy/file_watcher",
+    # Enable embedded asset hot reloading for native dev builds.
+    "bevy/embedded_watcher",
+]
+
+# Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.
+# In some cases they may still signal poor code quality however, so consider commenting out these lines.
+[lints.clippy]
+# Bevy supplies arguments to systems via dependency injection, so it's natural for systems to
+# request more than 7 arguments -- which triggers this lint.
+too_many_arguments = "allow"
+# Queries that access many components may trigger this lint.
+type_complexity = "allow"
+
+# Compile with Performance Optimizations:
+# https://bevyengine.org/learn/quick-start/getting-started/setup/#compile-with-performance-optimizations
+
 # Enable a small amount of optimization in debug mode.
 [profile.dev]
 opt-level = 1
@@ -6,14 +51,27 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
-[package]
-name = "game-rs"
-version = "0.1.0"
-edition = "2021"
+# The default profile is optimized for Wasm builds because
+# that's what [Trunk reads](https://github.com/trunk-rs/trunk/issues/605).
+# Optimize for size in wasm-release mode to reduce load times and bandwidth usage on web.
+[profile.release]
+# Compile the entire crate as one unit.
+# Significantly slows compile times, marginal improvements.
+codegen-units = 1
+# Do a second optimization pass over the entire program, including dependencies.
+# Slightly slows compile times, marginal improvements.
+lto = "thin"
+# Optimize with size in mind (also try "s", sometimes it is better).
+# This doesn't increase compilation times compared to -O3, great improvements.
+opt-level = "z"
+# Strip all debugging information from the binary to reduce file size.
+strip = "debuginfo"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-bevy = { version = "0.14.0", features = ["dynamic_linking"]} # features = ["dynamic_linking"]
-rand = "0.8.5"
-wasm-bindgen = "0.2.92"
+# Override some settings for native builds.
+[profile.release-native]
+# Use release profile as default values.
+inherits = "release"
+# Optimize with performance in mind.
+opt-level = 3
+# Keep debug information in the binary.
+strip = "none"
