@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use super::audio::sfx::Sfx;
+use super::{audio::sfx::Sfx, spawn::player::Player};
 use crate::AppSet;
 
 pub(super) fn plugin(app: &mut App) {
@@ -27,9 +27,6 @@ pub(super) fn plugin(app: &mut App) {
             .in_set(AppSet::Update),
     );
 
-    // Update facing based on controls.
-    app.add_systems(Update, update_facing.in_set(AppSet::Update));
-
     // Trigger step sound effects based on controls.
     app.register_type::<StepSfx>();
     app.add_systems(
@@ -43,45 +40,42 @@ pub(super) fn plugin(app: &mut App) {
 
 #[derive(Component, Reflect, Default)]
 #[reflect(Component)]
-pub struct MovementController(pub Vec2);
+pub struct MovementController {
+    movement_intent: f32,
+    rotation_intent: f32,
+}
 
 fn record_movement_controller(
     input: Res<ButtonInput<KeyCode>>,
-    mut controller_query: Query<&mut MovementController>,
+    mut controller_query: Query<&mut MovementController, With<Player>>,
 ) {
     // Collect directional input.
-    let mut intent = Vec2::ZERO;
+    let mut movement_intent = 0.0;
     if input.pressed(KeyCode::KeyW) || input.pressed(KeyCode::ArrowUp) {
-        intent.y += 1.0;
-    }
-    if input.pressed(KeyCode::KeyS) || input.pressed(KeyCode::ArrowDown) {
-        intent.y -= 1.0;
-    }
-    if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
-        intent.x -= 1.0;
-    }
-    if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
-        intent.x += 1.0;
+        movement_intent += 1.0;
     }
 
-    // Normalize so that diagonal movement has the same speed as
-    // horizontal and vertical movement.
-    let intent = intent.normalize_or_zero();
+    let mut rotation_intent = 0.0;
+    if input.pressed(KeyCode::KeyA) || input.pressed(KeyCode::ArrowLeft) {
+        rotation_intent += 1.0;
+    }
+
+    if input.pressed(KeyCode::KeyD) || input.pressed(KeyCode::ArrowRight) {
+        rotation_intent -= 1.0;
+    }
 
     // Apply movement intent to controllers.
     for mut controller in &mut controller_query {
-        controller.0 = intent;
+        controller.movement_intent = movement_intent;
+        controller.rotation_intent = rotation_intent;
     }
 }
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct Movement {
-    /// Since Bevy's default 2D camera setup is scaled such that
-    /// one unit is one pixel, you can think of this as
-    /// "How many pixels per second should the player move?"
-    /// Note that physics engines may use different unit/pixel ratios.
-    pub speed: f32,
+    pub movement_speed: f32,
+    pub rotation_speed: f32,
 }
 
 fn apply_movement(
@@ -89,8 +83,20 @@ fn apply_movement(
     mut movement_query: Query<(&MovementController, &Movement, &mut Transform)>,
 ) {
     for (controller, movement, mut transform) in &mut movement_query {
-        let velocity = movement.speed * controller.0;
-        transform.translation += velocity.extend(0.0) * time.delta_seconds();
+            // update the ship rotation around the Z axis (perpendicular to the 2D plane of the screen)
+    transform.rotate_z(controller.rotation_intent * movement.rotation_speed * time.delta_seconds());
+
+    // get the ship's forward vector by applying the current rotation to the ships initial facing
+    // vector
+    let movement_direction = transform.rotation * Vec3::Y;
+    // get the distance the ship will move based on direction, the ship's movement speed and delta
+    // time
+    let movement_distance = controller.movement_intent * movement.movement_speed * time.delta_seconds();
+    // create the change in translation using the new movement direction and distance
+    let translation_delta = movement_direction * movement_distance;
+    // update the ship translation with our new translation delta
+    transform.translation += translation_delta;
+
     }
 }
 
@@ -108,15 +114,6 @@ fn wrap_within_window(
         let position = transform.translation.xy();
         let wrapped = (position + half_size).rem_euclid(size) - half_size;
         transform.translation = wrapped.extend(transform.translation.z);
-    }
-}
-
-fn update_facing(mut player_query: Query<(&MovementController, &mut Sprite)>) {
-    for (controller, mut sprite) in &mut player_query {
-        let dx = controller.0.x;
-        if dx != 0.0 {
-            sprite.flip_x = dx < 0.0;
-        }
     }
 }
 
@@ -147,7 +144,7 @@ fn trigger_step_sfx(
     mut step_query: Query<(&MovementController, &mut StepSfx)>,
 ) {
     for (controller, mut step) in &mut step_query {
-        if step.cooldown_timer.finished() && controller.0 != Vec2::ZERO {
+        if step.cooldown_timer.finished() && controller.movement_intent != 0.0 {
             step.cooldown_timer.reset();
             commands.trigger(Sfx::Step);
         }

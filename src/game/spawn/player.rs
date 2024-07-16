@@ -35,7 +35,22 @@ fn spawn_player(
             ..Default::default()
         },
         MovementController::default(),
-        Movement { speed: 420.0 },
+        Movement { movement_speed: 420.0, rotation_speed: 5.0 },
+        WrapWithinWindow,
+        StepSfx::new(Duration::from_millis(250)),
+        StateScoped(Screen::Playing),
+    ));
+
+    commands.spawn((
+        Name::new("Player"),
+        //Player, without Player Struct it will move differently
+        SpriteBundle {
+            texture: asset_server.load("images/ducky.png"),
+            transform: Transform::from_scale(Vec3::splat(0.5)),
+            ..Default::default()
+        },
+        MovementController::default(),
+        Movement { movement_speed: 420.0, rotation_speed: 5.0 },
         WrapWithinWindow,
         StepSfx::new(Duration::from_millis(250)),
         StateScoped(Screen::Playing),
