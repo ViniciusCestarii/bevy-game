@@ -22,7 +22,7 @@ env:
   PACKAGE_NAME: bevy-template
   # The itch.io page to upload to, in the format: `user-name/project-name`.
   # Comment this out to disable.
-  ITCH_TARGET: the-bevy-flock/bevy-template
+  ITCH_TARGET: ViniciusCestari/random-ship
   # Whether packages produced by this workflow should be uploaded to the Github release.
   UPLOAD_PACKAGES_TO_GITHUB_RELEASE: true
   # Before enabling LFS, please take a look at GitHub's documentation for costs and quota limits:
