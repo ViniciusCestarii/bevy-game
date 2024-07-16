@@ -35,7 +35,10 @@ fn spawn_player(
             ..Default::default()
         },
         MovementController::default(),
-        Movement { movement_speed: 420.0, rotation_speed: 5.0 },
+        Movement {
+            movement_speed: 420.0,
+            rotation_speed: 5.0,
+        },
         WrapWithinWindow,
         StepSfx::new(Duration::from_millis(250)),
         StateScoped(Screen::Playing),
@@ -50,7 +53,10 @@ fn spawn_player(
             ..Default::default()
         },
         MovementController::default(),
-        Movement { movement_speed: 420.0, rotation_speed: 5.0 },
+        Movement {
+            movement_speed: 420.0,
+            rotation_speed: 5.0,
+        },
         WrapWithinWindow,
         StepSfx::new(Duration::from_millis(250)),
         StateScoped(Screen::Playing),
